@@ -1,64 +1,129 @@
 /*
-    Projeto: Cadastro de Territórios
+    Projeto: WAR estruturado - Interatividade e Ataque
     Autor: Layne Alves da Silva 
-    Objetivo: Demonstrar o uso de structs em C para armazenar múltiplos registros.
+    Objetivo: Adicionar a funcionalidade de ataque entre territórios,
+              usando ponteiros e alocação dinâmica.
 */
 
-#include <stdio.h>   // Biblioteca para entrada e saída (printf, scanf)
-#include <string.h>  // Biblioteca para manipular strings
-#include <locale.h>  // Biblioteca para configurar idioma (acentos)
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <locale.h>
+#include <time.h>
 #ifdef _WIN32
-#include <windows.h> // Biblioteca para SetConsoleOutputCP (apenas no Windows)
+#include <windows.h>
 #endif
 
-// Definindo a estrutura "Territorio"
+// Estrutura do território
 typedef struct {
-    char nome[30];   // Nome do território
-    char cor[10];    // Cor do exército
-    int tropas;      // Quantidade de tropas
+    char nome[30];
+    char cor[10];
+    int tropas;
 } Territorio;
 
+//FUNÇÕES 
+
+// Cadastrar territórios
+void cadastrarTerritorios(Territorio *mapa, int n) {
+    for (int i = 0; i < n; i++) {
+        printf("= Cadastro do território %d =\n", i + 1);
+
+        printf("Digite o nome do território: ");
+        fflush(stdin);
+        fgets(mapa[i].nome, sizeof(mapa[i].nome), stdin);
+        mapa[i].nome[strcspn(mapa[i].nome, "\n")] = '\0';
+
+        printf("Digite a cor do exército: ");
+        fgets(mapa[i].cor, sizeof(mapa[i].cor), stdin);
+        mapa[i].cor[strcspn(mapa[i].cor, "\n")] = '\0';
+
+        printf("Digite a quantidade de tropas: ");
+        scanf("%d", &mapa[i].tropas);
+        getchar(); // consome o '\n'
+        printf("\n");
+    }
+}
+
+// Exibir territórios
+void exibirTerritorios(Territorio *mapa, int n) {
+    printf("\n= Dados dos Territórios =\n");
+    for (int i = 0; i < n; i++) {
+        printf("[%d] %s | Cor: %s | Tropas: %d\n",
+               i, mapa[i].nome, mapa[i].cor, mapa[i].tropas);
+    }
+}
+
+// Simular ataque entre dois territórios
+void atacar(Territorio *atacante, Territorio *defensor) {
+    int dadoAtacante = rand() % 6 + 1; // valor entre 1 e 6
+    int dadoDefensor = rand() % 6 + 1;
+
+    printf("\n🎲 %s (dado: %d) ataca %s (dado: %d)\n",
+           atacante->nome, dadoAtacante, defensor->nome, dadoDefensor);
+
+    if (dadoAtacante > dadoDefensor) {
+        printf("⚔️  %s conquistou o território %s!\n", atacante->nome, defensor->nome);
+        strcpy(defensor->cor, atacante->cor);
+        defensor->tropas = atacante->tropas / 2; // metade das tropas vão pro novo território
+    } else {
+        printf("💀 %s perdeu uma tropa!\n", atacante->nome);
+        atacante->tropas--;
+    }
+}
+
+// Liberar memória alocada
+void liberarMemoria(Territorio *mapa) {
+    free(mapa);
+}
+
+//FUNÇAO PRINCIPAL
 int main() {
-    // Configuração de idioma e caracteres
     setlocale(LC_ALL, "pt_BR.UTF-8");
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
 #endif
+    srand(time(NULL)); // garante números aleatórios diferentes a cada execução
 
-    // Declara um vetor de 5 elementos do tipo Territorio
-    Territorio territorios[5];
+    int n;
+    printf("Quantos territórios deseja cadastrar? ");
+    scanf("%d", &n);
+    getchar(); // limpa o '\n'
 
-    // Laço para cadastrar os 5 territórios
-    for (int i = 0; i < 5; i++) {
-        printf("===== Cadastro do território %d =====\n", i + 1);
+    // Alocação dinâmica dos territórios
+    Territorio *mapa = (Territorio *) calloc(n, sizeof(Territorio));
 
-        // Lendo o nome
-        printf("Digite o nome do território: ");
-        fflush(stdin); // limpa buffer (pode ser ignorado em Linux)
-        fgets(territorios[i].nome, sizeof(territorios[i].nome), stdin);
-        territorios[i].nome[strcspn(territorios[i].nome, "\n")] = '\0'; // remove '\n'
-
-        // Lendo a cor
-        printf("Digite a cor do exército: ");
-        fgets(territorios[i].cor, sizeof(territorios[i].cor), stdin);
-        territorios[i].cor[strcspn(territorios[i].cor, "\n")] = '\0';
-
-        // Lendo o número de tropas
-        printf("Digite a quantidade de tropas: ");
-        scanf("%d", &territorios[i].tropas);
-        getchar(); // consome o '\n' deixado pelo scanf
-
-        printf("\n");
+    if (mapa == NULL) {
+        printf("Erro de alocação de memória!\n");
+        return 1;
     }
 
-    // Exibição dos dados cadastrados
-    printf("\n===== Dados dos Territórios Cadastrados =====\n");
-    for (int i = 0; i < 5; i++) {
-        printf("\nTerritório %d:\n", i + 1);
-        printf("Nome: %s\n", territorios[i].nome);
-        printf("Cor do exército: %s\n", territorios[i].cor);
-        printf("Quantidade de tropas: %d\n", territorios[i].tropas);
+    // Cadastra os territórios
+    cadastrarTerritorios(mapa, n);
+
+    // Mostra os territórios
+    exibirTerritorios(mapa, n);
+
+    // Escolha de ataque
+    int iAtacante, iDefensor;
+    printf("\nEscolha o índice do território ATACANTE: ");
+    scanf("%d", &iAtacante);
+    printf("Escolha o índice do território DEFENSOR: ");
+    scanf("%d", &iDefensor);
+
+    // Validação simples
+    if (iAtacante < 0 || iAtacante >= n || iDefensor < 0 || iDefensor >= n) {
+        printf("Índices inválidos!\n");
+    } else if (strcmp(mapa[iAtacante].cor, mapa[iDefensor].cor) == 0) {
+        printf("❌ Você não pode atacar um território da mesma cor!\n");
+    } else {
+        atacar(&mapa[iAtacante], &mapa[iDefensor]);
     }
+
+    // Mostra situação final
+    exibirTerritorios(mapa, n);
+
+    // Libera memória
+    liberarMemoria(mapa);
 
     return 0;
 }
